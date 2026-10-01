@@ -34,14 +34,22 @@ html, body, * {
   -webkit-touch-callout: none;
   -webkit-tap-highlight-color: transparent;
 }
-html, body { touch-action: pan-x pan-y; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+html { overflow-x: hidden; }
+html, body { touch-action: pan-y; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
 button, .cell, .gate, .video { touch-action: manipulation; }
 img, video { -webkit-user-drag: none; user-drag: none; }
 body { background: var(--night); color: var(--white); font-family: var(--sans); overflow-x: hidden; }
 
 /* Contact sheet */
+/* The background is decoration only: fixed, clipped to the screen, never touchable */
+.bg {
+  position: fixed; inset: 0; z-index: 0; overflow: hidden;
+  pointer-events: none; touch-action: none; contain: strict;
+  transform: translateZ(0);
+}
+.bg * { pointer-events: none !important; }
 .sheet {
-  position: fixed; inset: -6% -20%; z-index: 0;
+  position: absolute; inset: -6% -20%;
   display: flex; flex-direction: column; gap: 14px; justify-content: center;
   transform: rotate(-3deg);
 }
@@ -58,7 +66,6 @@ body { background: var(--night); color: var(--white); font-family: var(--sans); 
 /* Phone: shrink the frames so all six strips fit on screen at once */
 .frame .img {
   position: absolute; inset: 0; background-size: cover; background-position: center;
-  filter: sepia(.25) saturate(1.3) contrast(1.05) brightness(.76) blur(.3px);
 }
 .frame video.img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .frame .img.ph { background: linear-gradient(160deg, #6b3a24, #2d1a12); }
@@ -66,11 +73,12 @@ body { background: var(--night); color: var(--white); font-family: var(--sans); 
 @media (max-width: 700px) {
   .rows { gap: 8px; }
   .strip { padding-block: 10px; background-size: 100% 5px, 100% 5px, auto; }
-  .frame { width: auto; height: clamp(56px, calc(86dvh / 6 - 26px), 120px); aspect-ratio: 116 / 150; }
+  .frame { width: auto; height: clamp(56px, calc(86vh / 6 - 26px), 120px); height: clamp(56px, calc(86svh / 6 - 26px), 120px); aspect-ratio: 116 / 150; }
   .frame span { bottom: -10px; font-size: 7px; }
 }
-.scrim { position: fixed; inset: 0; z-index: 1; background: radial-gradient(120% 90% at 20% 20%, rgba(18,11,8,.42), rgba(18,11,8,.78)); }
-.grain { position: fixed; inset: 0; z-index: 1; background-image: var(--grain); opacity: .16; mix-blend-mode: overlay; pointer-events: none; }
+.scrim { position: absolute; inset: 0; background: radial-gradient(120% 90% at 20% 20%, rgba(18,11,8,.42), rgba(18,11,8,.78)); }
+.grain { position: absolute; inset: 0; background-image: var(--grain); opacity: .07; }
+@media (hover: hover) and (pointer: fine) { .grain { opacity: .16; mix-blend-mode: overlay; } }
 
 /* Foreground */
 main {
@@ -89,7 +97,7 @@ h1 em { display: block; font-weight: 500; font-size: .34em; letter-spacing: 0; m
 .caret { display: inline-block; width: 2px; height: 1.05em; background: var(--white); vertical-align: -.16em; margin-left: 2px; animation: blink 1s steps(1) infinite; }
 @keyframes blink { 50% { opacity: 0; } }
 
-.pick { position: relative; width: min(46%, 220px, 26vh); max-width: 100%; align-self: center; margin-block: 24px 10px; filter: drop-shadow(0 16px 26px rgba(0,0,0,.55)); }
+.pick { position: relative; width: min(46%, 220px, 26vh); max-width: 100%; align-self: center; margin-block: 24px 10px; box-shadow: 0 18px 34px rgba(0,0,0,.5); }
 .pick::after {
   content: ""; position: absolute; inset: -17px; pointer-events: none;
   border: 20px solid transparent;
@@ -136,8 +144,8 @@ body.open main { opacity: 1; pointer-events: auto; }
   position: fixed; z-index: 15; right: 14px; bottom: calc(14px + env(safe-area-inset-bottom, 0px));
   padding: 8px 12px; border-radius: 999px; border: 1px solid rgba(251,244,236,.35);
   background: rgba(18,11,8,.55); color: var(--white); font: 11px var(--mono); letter-spacing: .04em; cursor: pointer;
-  backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
 }
+@media (hover: hover) and (pointer: fine) { .snd { backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); } }
 .snd:focus-visible { outline: 2px solid var(--grease); outline-offset: 3px; }
 .play {
   position: absolute; inset: 0; margin: auto; width: 70px; height: 70px; border-radius: 50%;
@@ -173,9 +181,11 @@ body.open main { opacity: 1; pointer-events: auto; }
 <meta name="theme-color" content="#120b08">
 </head>
 <body>
-<div class="sheet" id="sheet" aria-hidden="true"></div>
-<div class="scrim" aria-hidden="true"></div>
-<div class="grain" aria-hidden="true"></div>
+<div class="bg" aria-hidden="true">
+  <div class="sheet" id="sheet"></div>
+  <div class="scrim"></div>
+  <div class="grain"></div>
+</div>
 <audio id="song" src="v/song.mp3" loop preload="auto"></audio>
 <div class="gate" id="gate" role="button" tabindex="0" aria-label="Entrar">
   <div class="gate-in">
@@ -212,13 +222,6 @@ body.open main { opacity: 1; pointer-events: auto; }
 <script>
 // Block pinch-zoom, double-tap zoom, long-press menus and dragging (mainly for iPhone)
 ["gesturestart", "gesturechange", "gestureend"].forEach(t => document.addEventListener(t, e => e.preventDefault(), { passive: false }));
-document.addEventListener("touchmove", e => { if (e.touches.length > 1 || (e.scale && e.scale !== 1)) e.preventDefault(); }, { passive: false });
-let lastTouch = 0;
-document.addEventListener("touchend", e => {
-  const now = Date.now();
-  if (now - lastTouch < 320) e.preventDefault();
-  lastTouch = now;
-}, { passive: false });
 document.addEventListener("dblclick", e => e.preventDefault());
 document.addEventListener("contextmenu", e => e.preventDefault());
 document.addEventListener("selectstart", e => e.preventDefault());
@@ -264,6 +267,8 @@ const rowsEl = document.createElement("div");
 rowsEl.className = "rows";
 sheet.appendChild(rowsEl);
 
+// film-look copies made for the background (smaller, color already applied)
+function bgSrc(src) { return "bg/" + src.split("/").pop(); }
 function makeFrame(i) {
   const it = items[i];
   const frame = document.createElement("div");
@@ -272,14 +277,14 @@ function makeFrame(i) {
   if (it.type === "vid") {
     img = document.createElement("video");
     img.className = "img";
-    img.src = it.src;
+    img.src = bgSrc(it.src);
     img.muted = true; img.loop = true; img.autoplay = true; img.playsInline = true;
     img.setAttribute("muted", ""); img.setAttribute("playsinline", ""); img.setAttribute("autoplay", ""); img.setAttribute("loop", "");
     watch(img);
   } else {
     img = document.createElement("div");
     img.className = "img";
-    img.style.backgroundImage = `url("${it.src}")`;
+    img.style.backgroundImage = `url("${bgSrc(it.src)}")`;
   }
   const label = document.createElement("span");
   label.textContent = `▸ ${i + 1}`;
@@ -345,15 +350,17 @@ function tick(now) {
   for (const strip of rowsEl.children) {
     const gw = +strip.dataset.gw;
     const x = strip.dataset.dir === "left" ? -phase * gw : -gw + phase * gw;
-    strip.style.transform = `translateX(${x}px)`;
+    strip.style.transform = `translate3d(${x.toFixed(1)}px,0,0)`;
   }
   const c = Math.floor(t / CYCLE);
   if (c !== cycleNo && !shifting) { cycleNo = c; shiftDown(); }
   requestAnimationFrame(tick);
 }
 if (!reduce) requestAnimationFrame(tick);
-let rz;
+let rz, lastW = innerWidth;
 window.addEventListener("resize", () => {
+  if (Math.abs(innerWidth - lastW) < 2) return;   // scrolling on iPhone only changes the height
+  lastW = innerWidth;
   clearTimeout(rz);
   rz = setTimeout(() => {
     [...rowsEl.children].slice(1).forEach(fillStrip);
