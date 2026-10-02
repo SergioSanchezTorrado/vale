@@ -1,0 +1,507 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>Valeria's Birthday</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,opsz,wght@0,6..96,500;0,6..96,800;1,6..96,500&family=Jost:wght@400;500;600&family=Space+Mono&family=Permanent+Marker&display=swap">
+<style>
+/* Layout: her photos as a moving film contact sheet (warm, grainy, dim). White type sits straight on the image:
+   caps info stack top-left, huge serif name, the note, then the video in a gilded frame, big date numeral at the end. Single look. */
+:root {
+  --night: #120b08;
+  --film: #1c120d;
+  --white: #fbf4ec;
+  --soft: rgba(251, 244, 236, 0.72);
+  --edge: #ff8a3d;
+  --grease: #ff4a2e;
+  --serif: "Bodoni Moda", "Didot", "Bodoni 72", Georgia, serif;
+  --sans: "Jost", "Futura", "Century Gothic", "Helvetica Neue", sans-serif;
+  --mono: "Space Mono", ui-monospace, "Courier New", monospace;
+  --hand: "Permanent Marker", "Marker Felt", "Comic Sans MS", cursive;
+  --grain: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 .95  0 0 0 0 .9  0 0 0 .6 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+  color-scheme: dark;
+}
+html, body { height: 100%; }
+body { margin: 0; }
+img { max-width: 100%; }
+:root { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+/* No zooming, no text selection, no long-press menus or tap highlights */
+html, body, * {
+  -webkit-user-select: none; user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+}
+html { overflow-x: hidden; }
+html, body { touch-action: pan-y; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+button, .cell, .gate, .video { touch-action: manipulation; }
+img, video { -webkit-user-drag: none; user-drag: none; }
+body { background: var(--night); color: var(--white); font-family: var(--sans); overflow-x: hidden; }
+
+/* Contact sheet */
+/* The background is decoration only: fixed, clipped to the screen, never touchable */
+.bg {
+  position: fixed; inset: 0; z-index: 0; overflow: hidden;
+  pointer-events: none; touch-action: none; contain: strict;
+  transform: translateZ(0);
+}
+.bg * { pointer-events: none !important; }
+.sheet {
+  position: absolute; inset: -6% -20%;
+  display: flex; flex-direction: column; gap: 14px; justify-content: center;
+  transform: rotate(-3deg);
+}
+.strip {
+  display: flex; gap: 6px; padding-block: 16px; width: max-content;
+  background:
+    repeating-linear-gradient(90deg, transparent 0 8px, #3a2a22 8px 18px) top / 100% 7px no-repeat,
+    repeating-linear-gradient(90deg, transparent 0 8px, #3a2a22 8px 18px) bottom / 100% 7px no-repeat,
+    var(--film);
+  will-change: transform;
+}
+.rows { display: flex; flex-direction: column; gap: 14px; will-change: transform; }
+.frame { position: relative; width: 116px; height: 150px; flex: none; }
+/* Phone: shrink the frames so all six strips fit on screen at once */
+.frame .img {
+  position: absolute; inset: 0; background-size: cover; background-position: center;
+}
+.frame video.img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.frame .img.ph { background: linear-gradient(160deg, #6b3a24, #2d1a12); }
+.frame span { position: absolute; left: 2px; bottom: -14px; font: 9px var(--mono); color: var(--edge); opacity: .8; }
+@media (max-width: 700px) {
+  .rows { gap: 8px; }
+  .strip { padding-block: 10px; background-size: 100% 5px, 100% 5px, auto; }
+  .frame { width: auto; height: clamp(56px, calc(86vh / 6 - 26px), 120px); height: clamp(56px, calc(86svh / 6 - 26px), 120px); aspect-ratio: 116 / 150; }
+  .frame span { bottom: -10px; font-size: 7px; }
+}
+.scrim { position: absolute; inset: 0; background: radial-gradient(120% 90% at 20% 20%, rgba(18,11,8,.42), rgba(18,11,8,.78)); }
+.grain { position: absolute; inset: 0; background-image: var(--grain); opacity: .07; }
+@media (hover: hover) and (pointer: fine) { .grain { opacity: .16; mix-blend-mode: overlay; } }
+
+/* Foreground */
+main {
+  position: relative; z-index: 2;
+  max-width: 540px; margin-inline: auto;
+  padding-inline: 22px; padding-block: 44px 96px; box-sizing: border-box;
+  display: flex; flex-direction: column; gap: 30px;
+  text-shadow: 0 1px 14px rgba(0,0,0,.6);
+}
+.info { display: flex; flex-direction: column; gap: 4px; font: 600 14px/1.25 var(--sans); letter-spacing: .09em; text-transform: uppercase; }
+.info .kicker { font-weight: 500; color: var(--soft); letter-spacing: .18em; font-size: 12px; margin-bottom: 4px; }
+h1 { margin: 0; font-family: var(--serif); font-weight: 800; font-size: clamp(76px, 23vw, 136px); line-height: .88; letter-spacing: -.02em; text-wrap: balance; }
+h1 em { display: block; font-weight: 500; font-size: .34em; letter-spacing: 0; margin-bottom: .1em; color: var(--soft); }
+
+.msg { margin: 0; font: 400 17px/1.7 var(--sans); white-space: pre-line; min-height: 6.8em; max-width: 60ch; }
+.caret { display: inline-block; width: 2px; height: 1.05em; background: var(--white); vertical-align: -.16em; margin-left: 2px; animation: blink 1s steps(1) infinite; }
+@keyframes blink { 50% { opacity: 0; } }
+
+.pick { position: relative; width: min(46%, 220px, 26vh); max-width: 100%; align-self: center; margin-block: 24px 10px; box-shadow: 0 18px 34px rgba(0,0,0,.5); }
+.pick::after {
+  content: ""; position: absolute; inset: -17px; pointer-events: none;
+  border: 20px solid transparent;
+  border-image: url("frame.webp") 77 75 73 76 stretch;
+  filter: brightness(.58) saturate(.85) contrast(1.1);
+}
+.video { position: relative; width: 100%; max-width: 100%; aspect-ratio: 9 / 16; background: #000; overflow: hidden; }
+.note {
+  position: absolute; z-index: 3; width: 82%; max-width: none; height: auto; aspect-ratio: 260 / 310; right: -56%; top: -30%;
+  pointer-events: none; opacity: 0; transition: opacity 1.2s ease;
+  filter: drop-shadow(0 1px 5px rgba(0,0,0,.75));
+}
+.note.on { opacity: 1; }
+@media (min-width: 701px) {
+  .note { width: 250px; right: auto; left: calc(100% - 30px); top: -14%; }
+}
+.video .layer { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; opacity: 0; transition: opacity 1.4s ease-in-out; }
+.video .layer.on { opacity: 1; }
+.video .ph { position: absolute; inset: 0; display: grid; place-items: center; text-align: center; font: 500 12px var(--sans); letter-spacing: .16em; text-transform: uppercase; color: var(--soft); background: linear-gradient(170deg, #4a2717, #160d09); }
+.gate {
+  position: fixed; inset: 0; z-index: 20; display: grid; place-items: center; cursor: pointer;
+  background: radial-gradient(60% 40% at 50% 50%, rgba(18,11,8,.38), rgba(18,11,8,.08));
+  text-shadow: 0 2px 18px rgba(0,0,0,.85);
+  transition: opacity .9s ease;
+}
+main { opacity: 0; pointer-events: none; transition: opacity 1.2s ease .3s; }
+body.open main { opacity: 1; pointer-events: auto; }
+.gate.gone { opacity: 0; pointer-events: none; backdrop-filter: none; -webkit-backdrop-filter: none; }
+[hidden] { display: none !important; }
+.gate:focus-visible { outline: none; }
+.gate:focus-visible .gate-cta { outline: 2px solid var(--grease); outline-offset: 6px; }
+.gate-in { display: flex; flex-direction: column; align-items: center; gap: 14px; text-align: center; padding-inline: 16px; }
+.gate-kicker { font: 11px var(--mono); color: var(--edge); letter-spacing: .12em; }
+.gate-title { font: italic 500 clamp(30px, 8vw, 44px)/1 var(--serif); color: var(--soft); }
+.gate-title b { display: block; font-style: normal; font-weight: 800; font-size: 2.2em; color: var(--white); letter-spacing: -.02em; line-height: .95; }
+.gate-cta {
+  margin-top: 10px; background: rgba(18,11,8,.35); box-shadow: 0 4px 20px rgba(0,0,0,.4); padding: 12px 22px; border: 1.5px solid var(--white); border-radius: 999px;
+  font: 600 12px var(--sans); letter-spacing: .2em; text-transform: uppercase; color: var(--white);
+  animation: pulse 2.2s ease-in-out infinite;
+}
+.gate-note { font: italic 500 14px var(--serif); color: var(--soft); }
+@keyframes pulse { 50% { background: rgba(251,244,236,.12); } }
+.snd {
+  position: fixed; z-index: 15; right: 14px; bottom: calc(14px + env(safe-area-inset-bottom, 0px));
+  padding: 8px 12px; border-radius: 999px; border: 1px solid rgba(251,244,236,.35);
+  background: rgba(18,11,8,.55); color: var(--white); font: 11px var(--mono); letter-spacing: .04em; cursor: pointer;
+}
+@media (hover: hover) and (pointer: fine) { .snd { backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); } }
+.snd:focus-visible { outline: 2px solid var(--grease); outline-offset: 3px; }
+.play {
+  position: absolute; inset: 0; margin: auto; width: 70px; height: 70px; border-radius: 50%;
+  background: rgba(18,11,8,.35); border: 1.5px solid var(--white); color: var(--white);
+  font: 600 11px var(--sans); letter-spacing: .16em; cursor: pointer; backdrop-filter: blur(4px);
+}
+.play:focus-visible { outline: 2px solid var(--grease); outline-offset: 4px; }
+@keyframes draw { from { stroke-dashoffset: 1400; } }
+.scribble { position: absolute; right: -12%; top: -9%; font: 24px var(--hand); color: var(--grease); transform: rotate(8deg); }
+
+.end { display: flex; justify-content: flex-end; align-items: flex-end; gap: 16px; border-top: 1px solid rgba(251,244,236,.25); padding-top: 18px; }
+.end .from { font: 600 13px/1.4 var(--sans); letter-spacing: .12em; text-transform: uppercase; }
+.end .from span { display: block; font-weight: 500; color: var(--soft); font-size: 11px; letter-spacing: .18em; }
+.end .num { font: 800 clamp(64px, 20vw, 110px)/.8 var(--serif); letter-spacing: -.03em; font-variant-numeric: lining-nums; }
+.end .num { text-align: right; }
+.end .num .year { display: block; margin-top: 10px; font: 500 clamp(26px, 8vw, 40px)/1 var(--serif); letter-spacing: .04em; color: var(--white); }
+.end .num .icon { display: block; margin-top: 8px; font: italic 500 14px/1.3 var(--serif); letter-spacing: 0; color: var(--soft); }
+.end .num small { display: block; text-align: right; font: italic 500 18px var(--serif); letter-spacing: 0; margin-bottom: 4px; color: var(--soft); }
+
+.roll { display: flex; flex-direction: column; gap: 12px; padding-top: 8px; }
+.roll h2 { margin: 0; display: flex; justify-content: space-between; align-items: baseline; gap: 12px; font: 600 12px var(--sans); letter-spacing: .18em; text-transform: uppercase; }
+.roll h2 span { font: 10px var(--mono); letter-spacing: .06em; color: var(--edge); }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(62px, 1fr)); gap: 14px 6px; background: var(--film); padding: 12px 8px 18px; }
+.cell { position: relative; aspect-ratio: 3 / 4; max-width: 100%; padding: 0; border: 0; background: #000; cursor: zoom-in; }
+.cell img, .cell video { width: 100%; height: 100%; object-fit: cover; display: block; }
+.cell span { position: absolute; left: 1px; bottom: -13px; font: 9px var(--mono); color: var(--edge); }
+.cell:focus-visible { outline: 2px solid var(--grease); outline-offset: 2px; }
+.hint { margin: 0; text-align: center; font: italic 500 16px var(--serif); color: var(--soft); }
+.lb { position: fixed; inset: 0; z-index: 10; background: rgba(12,7,5,.94); display: grid; place-items: center; padding: 24px 16px; cursor: zoom-out; }
+.lb img, .lb video { max-width: 100%; max-height: 86vh; box-shadow: 0 20px 60px rgba(0,0,0,.6); }
+@media (prefers-reduced-motion: reduce) { .caret, .gate-cta { animation: none; } }
+</style>
+<meta name="theme-color" content="#120b08">
+</head>
+<body>
+<div class="bg" aria-hidden="true">
+  <div class="sheet" id="sheet"></div>
+  <div class="scrim"></div>
+  <div class="grain"></div>
+</div>
+<audio id="song" src="v/song.mp3" loop preload="auto"></audio>
+<div class="gate" id="gate" role="button" tabindex="0" aria-label="Entrar">
+  <div class="gate-in">
+    <span class="gate-kicker">01/10/2026</span>
+    <span class="gate-title">for <b>Valeria</b></span>
+    <span class="gate-cta">entrar</span>
+    <span class="gate-note">sube el volumen</span>
+  </div>
+</div>
+<button class="snd" id="snd" type="button" hidden>♪ sonido: on</button>
+
+<main>
+
+  <h1><em>feliz cumple,</em>Vale</h1>
+
+  <p class="msg" id="msg"></p>
+
+  <div class="pick">
+    <div class="video" id="video"><div class="ph">Tu video va aquí</div></div>
+    <canvas class="note" id="note" width="260" height="310" aria-hidden="true"></canvas>
+  </div>
+
+  <div class="end">
+    <div class="num"><small>octubre</small>01<span class="year">2001</span><span class="icon">on this day an icon was born</span></div>
+  </div>
+  <section class="roll" aria-label="Todas las fotos y videos">
+    <h2>Arte usada <span id="count"></span></h2>
+    <div class="grid" id="grid"></div>
+    <p class="hint">(looks better on your Mac)</p>
+  </section>
+</main>
+<div class="lb" id="lb" hidden></div>
+
+<script>
+// Block pinch-zoom, double-tap zoom, long-press menus and dragging (mainly for iPhone)
+["gesturestart", "gesturechange", "gestureend"].forEach(t => document.addEventListener(t, e => e.preventDefault(), { passive: false }));
+document.addEventListener("dblclick", e => e.preventDefault());
+document.addEventListener("contextmenu", e => e.preventDefault());
+document.addEventListener("selectstart", e => e.preventDefault());
+document.addEventListener("dragstart", e => e.preventDefault());
+document.addEventListener("wheel", e => { if (e.ctrlKey) e.preventDefault(); }, { passive: false });
+document.addEventListener("keydown", e => { if ((e.ctrlKey || e.metaKey) && ["+", "-", "=", "0"].includes(e.key)) e.preventDefault(); });
+// ---- Content: swap these in ----
+const PHOTOS = Array.from({ length: 44 }, (_, i) => `p/${String(i + 1).padStart(2, "0")}.jpg`);
+const CLIPS = ["v/c1.mp4", "v/c2.mp4", "v/c3.mp4", "v/c4.mp4", "v/c5.mp4", "v/c6.mp4"];
+const MESSAGE = "Hoy es un día muy especial, para una mujer super espectacular, hermosa, inteligente, valiosa, amable, única, fascinante, divertida, atractiva, AUTÉNTICA  y de vez en cuando clumsy. Valeria quiero que sepas que te mereces el mundo y un poco más, es increíble el buen corazón y alma que tienes que sin darte cuenta alegras a tu alrededor con tu energía. Eres como un sol. Espero que en el día de hoy y en lo que falta de la semana disfrutes con tu familia y amistades que son tu segunda familia. Te deseo todos los éxitos posibles, que logres todo lo que te propongas y más alegría en tu vida; Te amo con todo mi ser y todas mis fuerzas. Pase lo que pase entre nosotros el tiempo nos dirá, no importa que, te voy amar para siempre, eres y serás el amor más lindo que tengo. ¡Te Amo!";
+// ---------------------------------
+
+// Only play the little clips that are on screen; pause the rest (keeps phones smooth)
+const vio = new IntersectionObserver(es => es.forEach(e => {
+  const v = e.target;
+  if (e.isIntersecting) { v.muted = true; v.play().catch(() => {}); } else v.pause();
+}), { rootMargin: "60px" });
+function watch(v) { v.autoplay = false; v.removeAttribute("autoplay"); v.preload = "metadata"; vio.observe(v); }
+function unwatch(root) { root.querySelectorAll("video").forEach(v => { vio.unobserve(v); v.pause(); }); }
+const items = [];
+PHOTOS.forEach((src, i) => {
+  items.push({ type: "img", src });
+  if (i % 7 === 3 && CLIPS[Math.floor(i / 7)]) items.push({ type: "vid", src: CLIPS[Math.floor(i / 7)] });
+});
+
+items[0] = { type: "vid", src: "v/c7.mp4" }; // shot 1 is the TV clip
+items.splice(20, 0, { type: "vid", src: "v/c8.mp4" }); // party clip, last shot of strip 2
+// Strip 6 (shots 52-61): the last batch, starting with Sergio's favorite photo
+["p/45.jpg", "p/46.jpg", "p/47.jpg", "p/48.jpg", "v/c9.mp4", "p/49.jpg", "p/50.jpg", "p/51.jpg", "p/52.jpg", "p/53.jpg"]
+  .forEach(src => items.push({ type: src.endsWith(".mp4") ? "vid" : "img", src }));
+
+// Film strips: strip 1 = shots 1-10, strip 2 = 11-21, strip 3 = 22-31, strip 4 = 32-41, strip 5 = 42-51, strip 6 = 52-61.
+// Strip 6 = shots 52-61.
+const sheet = document.getElementById("sheet");
+const idx = items.map((_, i) => i);
+const bounds = [0, 10, 21, 31, 41, 51, items.length]; // strip 2 holds 11 shots
+const groups = [0, 1, 2, 3, 4, 5].map(g => idx.slice(bounds[g], bounds[g + 1]));
+const rows = groups;
+// Each strip slides its own group across once, then every group moves down one strip (6 wraps to 1).
+const CYCLE = 55; // seconds for a 10-shot group to pass
+const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+const rowsEl = document.createElement("div");
+rowsEl.className = "rows";
+sheet.appendChild(rowsEl);
+
+// film-look copies made for the background (smaller, color already applied)
+function bgSrc(src) { return "bg/" + src.split("/").pop(); }
+function makeFrame(i) {
+  const it = items[i];
+  const frame = document.createElement("div");
+  frame.className = "frame";
+  let img;
+  if (it.type === "vid") {
+    img = document.createElement("video");
+    img.className = "img";
+    img.src = bgSrc(it.src);
+    img.muted = true; img.loop = true; img.autoplay = true; img.playsInline = true;
+    img.setAttribute("muted", ""); img.setAttribute("playsinline", ""); img.setAttribute("autoplay", ""); img.setAttribute("loop", "");
+    watch(img);
+  } else {
+    img = document.createElement("div");
+    img.className = "img";
+    img.style.backgroundImage = `url("${bgSrc(it.src)}")`;
+  }
+  const label = document.createElement("span");
+  label.textContent = `▸ ${i + 1}`;
+  frame.append(img, label);
+  return frame;
+}
+function fillStrip(strip) {
+  const row = JSON.parse(strip.dataset.row);
+  unwatch(strip);
+  strip.textContent = "";
+  strip.appendChild(makeFrame(row[0]));
+  const pitchX = strip.firstChild.offsetWidth + 6;
+  const groupW = pitchX * row.length;
+  const need = sheet.getBoundingClientRect().width + groupW;
+  const reps = Math.ceil(need / groupW) + 1;
+  strip.textContent = "";
+  for (let r = 0; r < reps; r++) row.forEach(i => strip.appendChild(makeFrame(i)));
+  strip.dataset.gw = groupW;
+}
+function cloneStrip(strip) {
+  const c = strip.cloneNode(true);
+  c.querySelectorAll("video").forEach(v => { v.muted = true; watch(v); });
+  return c;
+}
+rows.forEach((row, k) => {
+  const strip = document.createElement("div");
+  strip.className = "strip";
+  strip.dataset.row = JSON.stringify(row);
+  strip.dataset.dir = k % 2 ? "right" : "left";
+  rowsEl.appendChild(strip);
+  fillStrip(strip);
+});
+let ghost = cloneStrip(rowsEl.lastElementChild);   // sits just above the top strip, off screen
+rowsEl.prepend(ghost);
+let pitchY = 0;
+function measure() {
+  const st = rowsEl.children[1];
+  pitchY = rowsEl.children[2].offsetTop - st.offsetTop;
+  rowsEl.style.marginTop = `${-pitchY}px`;
+}
+measure();
+
+let t0 = performance.now(), cycleNo = 0, shifting = false;
+function shiftDown() {
+  shifting = true;
+  rowsEl.style.transition = "transform .9s cubic-bezier(.6,0,.3,1)";
+  rowsEl.style.transform = `translateY(${pitchY}px)`;
+  setTimeout(() => {
+    rowsEl.style.transition = "none";
+    const last = rowsEl.lastElementChild;
+    unwatch(ghost); ghost.remove();
+    rowsEl.prepend(last);                     // strip 6's group becomes strip 1
+    ghost = cloneStrip(rowsEl.lastElementChild);
+    rowsEl.prepend(ghost);
+    rowsEl.style.transform = "translateY(0)";
+    rowsEl.offsetHeight;                       // apply without animating
+    shifting = false;
+  }, 950);
+}
+function tick(now) {
+  const t = (now - t0) / 1000;
+  const phase = (t / CYCLE) % 1;
+  for (const strip of rowsEl.children) {
+    const gw = +strip.dataset.gw;
+    const x = strip.dataset.dir === "left" ? -phase * gw : -gw + phase * gw;
+    strip.style.transform = `translate3d(${x.toFixed(1)}px,0,0)`;
+  }
+  const c = Math.floor(t / CYCLE);
+  if (c !== cycleNo && !shifting) { cycleNo = c; shiftDown(); }
+  requestAnimationFrame(tick);
+}
+if (!reduce) requestAnimationFrame(tick);
+let rz, lastW = innerWidth;
+window.addEventListener("resize", () => {
+  if (Math.abs(innerWidth - lastW) < 2) return;   // scrolling on iPhone only changes the height
+  lastW = innerWidth;
+  clearTimeout(rz);
+  rz = setTimeout(() => {
+    [...rowsEl.children].slice(1).forEach(fillStrip);
+    unwatch(ghost); ghost.remove(); ghost = cloneStrip(rowsEl.lastElementChild); rowsEl.prepend(ghost);
+    measure();
+  }, 250);
+});
+
+// Contact sheet: every photo and clip, small, tap to enlarge
+const grid = document.getElementById("grid");
+const lb = document.getElementById("lb");
+items.forEach((it, i) => {
+  const b = document.createElement("button");
+  b.className = "cell"; b.type = "button";
+  b.setAttribute("aria-label", `Ver toma ${i + 1}`);
+  let m;
+  if (it.type === "img") { m = document.createElement("img"); m.src = it.src; m.alt = ""; m.loading = "lazy"; }
+  else { m = document.createElement("video"); m.src = it.src; m.muted = true; m.loop = true; m.autoplay = true; m.playsInline = true; m.setAttribute("muted", ""); m.setAttribute("playsinline", ""); watch(m); }
+  const l = document.createElement("span"); l.textContent = `${i + 1}${it.type === "vid" ? " ▶" : ""}`;
+  b.append(m, l);
+  b.onclick = () => {
+    lb.innerHTML = "";
+    const big = it.type === "img" ? Object.assign(document.createElement("img"), { src: it.src, alt: "" })
+      : Object.assign(document.createElement("video"), { src: it.src, muted: true, loop: true, autoplay: true, playsInline: true });
+    lb.appendChild(big); lb.hidden = false;
+  };
+  grid.appendChild(b);
+});
+document.getElementById("count").textContent = `${items.length} tomas`;
+lb.onclick = () => { lb.hidden = true; lb.innerHTML = ""; };
+document.addEventListener("keydown", e => { if (e.key === "Escape") lb.click(); });
+
+function startTyping() { if (window.__tick) setTimeout(window.__tick, 700); }
+const msgEl = document.getElementById("msg");
+if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+  msgEl.textContent = MESSAGE;
+} else {
+  const caret = document.createElement("span");
+  caret.className = "caret";
+  let i = 0;
+  const tick = () => {
+    msgEl.textContent = MESSAGE.slice(0, i);
+    msgEl.appendChild(caret);
+    if (i++ < MESSAGE.length) {
+      const ch = MESSAGE[i - 1];
+      setTimeout(tick, ch === "\n" ? 300 : (ch === "." || ch === "," || ch === ";" || ch === ":" || ch === "…") ? 180 : 26);
+    }
+  };
+  window.__tick = tick;
+}
+
+// Framed sequence, pre-rendered as ONE video so iPhones play it reliably:
+// concert x2 (2nd ends 5 s early, dips to black) -> cake -> dip to black -> favorite photo.
+const box = document.getElementById("video");
+box.innerHTML = "";
+const seq = document.createElement("video");
+seq.className = "layer on";
+seq.src = "v/seq.mp4"; seq.poster = "v/seq.jpg";
+seq.muted = true; seq.playsInline = true; seq.preload = "auto";
+seq.setAttribute("muted", ""); seq.setAttribute("playsinline", ""); seq.setAttribute("webkit-playsinline", "");
+const fav = Object.assign(document.createElement("img"), { src: "v/fav.jpg", alt: "", className: "layer" });
+box.append(seq, fav);
+let started = false, done = false;
+seq.addEventListener("ended", () => { done = true; fav.classList.add("on"); drawNote(); });   // hold on her photo
+// Sergio's handwritten "fav pic!" note: drawn frame by frame on a canvas (works the same on every browser),
+// starts as her photo comes up, then fades 3 s after it's finished
+const note = document.getElementById("note");
+const nctx = note.getContext("2d");
+const SHEET = new Image(); SHEET.src = "v/favnote_sheet.png";
+const NF = 109, NC = 11, FW = 260, FH = 310, FMS = 62;
+let noted = false;
+function drawNote() {
+  if (noted) return;
+  noted = true;
+  const run = () => {
+    note.classList.add("on");
+    const t0 = performance.now();
+    const step = now => {
+      const k = Math.min(NF - 1, Math.floor((now - t0) / FMS));
+      nctx.clearRect(0, 0, FW, FH);
+      nctx.drawImage(SHEET, (k % NC) * FW, Math.floor(k / NC) * FH, FW, FH, 0, 0, FW, FH);
+      if (k < NF - 1) requestAnimationFrame(step);
+      else setTimeout(() => note.classList.remove("on"), 3000);
+    };
+    requestAnimationFrame(step);
+  };
+  if (SHEET.complete && SHEET.naturalWidth) run(); else SHEET.onload = run;
+}
+seq.addEventListener("timeupdate", () => { if (seq.duration && seq.duration - seq.currentTime <= 3) drawNote(); });
+function startMain() {
+  if (started) return;
+  started = true;
+  seq.currentTime = 0;
+  seq.play().catch(() => {});
+}
+const nudge = () => { if (started && !done && seq.paused) seq.play().catch(() => {}); };
+box.addEventListener("click", nudge);
+document.addEventListener("visibilitychange", () => { if (!document.hidden) nudge(); });
+new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) nudge(); })).observe(box);
+
+// Entry screen: tapping it starts the song (browsers only allow sound after a tap)
+const song = document.getElementById("song");
+const gate = document.getElementById("gate");
+const snd = document.getElementById("snd");
+let entered = false;
+function fadeTo(target, ms) {
+  const from = song.volume, t0 = performance.now();
+  const step = now => {
+    const k = Math.max(0, Math.min(1, (now - t0) / ms));
+    song.volume = from + (target - from) * k;
+    if (k < 1) requestAnimationFrame(step);
+  };
+  requestAnimationFrame(step);
+}
+function enter() {
+  if (entered) return;
+  entered = true;
+  song.volume = 0;
+  song.play().then(() => fadeTo(0.8, 2500)).catch(() => { snd.textContent = "♪ sonido: off"; });
+  // the tap counts as permission, so start every video now (needed on iPhone)
+  const vh = innerHeight, vw = innerWidth;
+  document.querySelectorAll("video").forEach(el => {
+    const r = el.getBoundingClientRect();
+    if (r.bottom > 0 && r.top < vh && r.right > 0 && r.left < vw) { el.muted = true; el.play().catch(() => {}); }
+  });
+  startMain();
+  // count taps on "entrar" separately from page opens (GitHub version only)
+  try { window.goatcounter && window.goatcounter.count && window.goatcounter.count({ path: "entrar", title: "Tocó entrar", event: true }); } catch (e) {}
+  document.body.classList.add("open");
+  gate.classList.add("gone");
+  setTimeout(() => { gate.hidden = true; }, 900);
+  snd.hidden = false;
+  startTyping();
+}
+gate.addEventListener("click", enter);
+gate.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); enter(); } });
+snd.onclick = () => {
+  if (song.paused) { song.play(); fadeTo(0.8, 800); snd.textContent = "♪ sonido: on"; }
+  else { song.pause(); snd.textContent = "♪ sonido: off"; }
+};
+</script>
+<script data-goatcounter="https://sergiosanchez.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
+</body>
+</html>
